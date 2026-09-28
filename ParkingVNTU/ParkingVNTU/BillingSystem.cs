@@ -14,7 +14,7 @@ namespace ParkingVNTU
             { VehicleType.Truck, 70.0m }
         };
 
-        public ParkingSpot CalculateFee(Vehicle vehicle)
+        public Receipt CalculateFee(Vehicle vehicle)
         {
             var duration = DateTime.Now - vehicle.EntryTime;
             int hours = Math.Max(1, (int)Math.Ceiling(duration.TotalSeconds));

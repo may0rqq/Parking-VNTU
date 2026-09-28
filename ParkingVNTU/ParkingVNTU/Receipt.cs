@@ -7,8 +7,8 @@ namespace ParkingVNTU
     public class Receipt
     {
         public string LicensePlate { get; }
-        public TimeSpan Duration { get; }
-        public decimal TotalCost { get; }
+        public TimeSpan Duration { get; set; }
+        public decimal TotalCost { get; set; }
         public bool IsStudent { get; }
         public bool IsKudryavtsev { get; }
 

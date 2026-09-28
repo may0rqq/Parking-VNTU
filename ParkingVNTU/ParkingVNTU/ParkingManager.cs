@@ -9,14 +9,14 @@ namespace ParkingVNTU
     {
         private readonly List<ParkingSpot> _spots = new();
         private readonly BillingSystem _billing = new();
-        private decimal TotalRevenue { get; private set; }
+        public decimal TotalRevenue { get; private set; }
 
         public ParkingManager(int sedanSpots, int suvSpots, int electricSpots)
         {
             _spots.Add(new ParkingSpot(1, VehicleType.Sedan, isVipKudryavtsevSpot: true));
 
             int id = 2;
-            for(int i = 0; i < sedanSpots; i++) _spotsAdd(new ParkingSpot(id++, VehicleType.Sedan));
+            for(int i = 0; i < sedanSpots; i++) _spots.Add(new ParkingSpot(id++, VehicleType.Sedan));
             for(int i = 0; i < suvSpots; i++) _spots.Add(new ParkingSpot(id++, VehicleType.SUV));
             for(int i = 0; i < electricSpots; i++) _spots.Add(new ParkingSpot(id++, VehicleType.Electric));
         }
@@ -36,7 +36,7 @@ namespace ParkingVNTU
                 }
             }
 
-            var spot = _spots.FirstOrDefault(s => !s.IsOccupied && s.AllowedType == vehicle.Type && !s.IsOccupied);
+            var spot = _spots.FirstOrDefault(s => !s.IsOccupied && s.AllowedType == vehicle.Type && !s.IsVipKudryavtsevSpot);
             if(spot == null)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -54,7 +54,7 @@ namespace ParkingVNTU
 
         public bool UnparkVehicle(string licensePlate)
         {
-            var spot = _spots.FirstOrDefault(s => s.IsOccupied && s.CurrentVehicle.LicensePlate(licensePlate, StringComparison.OrdinalIgnoreCase));
+            var spot = _spots.FirstOrDefault(s => s.IsOccupied && s.CurrentVehicle.LicensePlate.Equals(licensePlate, StringComparison.OrdinalIgnoreCase));
             if (spot == null)
             {
                 Console.ForegroundColor = ConsoleColor.Red;
@@ -65,8 +65,7 @@ namespace ParkingVNTU
             var vehicle = spot.Vacate();
             var receipt = _billing.CalculateFee(vehicle);
             TotalRevenue += receipt.TotalCost;
-            Console.ForegroundColor = ConsoleColor.Yellow;
-            Console.WriteLine($"[💰] Автомобіль {vehicle.Type} ({vehicle.LicensePlate}) виїхав. Час паркування: {receipt.Duration.TotalSeconds} секунд. Вартість: {receipt.Cost:C2}");
+            Console.WriteLine($"[💰] Автомобіль {vehicle.Type} ({vehicle.LicensePlate}) виїхав. Час паркування: {receipt.Duration.TotalSeconds:F0} секунд. Вартість: {receipt.TotalCost:C2}");
             Console.ResetColor();
             return true;
         }
@@ -74,7 +73,7 @@ namespace ParkingVNTU
         public void CheckAndEvacuate()
         {
             var violators = _spots
-                .Where(s => s.IsOccupied && !s.CurrentVehicle.IsKudryavtsev && (DateTime.Now - s.CurrentVehicle.EntryTime).TotalSeconds > 15)
+                .Where(s => s.IsOccupied && !s.CurrentVehicle.IsKudryavtsev && (DateTime.Now - s.CurrentVehicle.EntryTime).TotalSeconds > 120)
                 .ToList();
 
             if(!violators.Any())
@@ -85,12 +84,11 @@ namespace ParkingVNTU
 
             foreach(var spot in violators)
             {
-                var vehicle = spot.Vacate();
-                var receipt = _billing.CalculateFee(vehicle);
-                TotalRevenue += receipt.TotalCost;
-                Console.ForegroundColor = ConsoleColor.Red;
-                Console.WriteLine($"[🚨] Автомобіль {vehicle.Type} ({vehicle.LicensePlate}) евакуйовано за перевищення часу паркування. Час паркування: {receipt.Duration.TotalSeconds} секунд. Вартість: {receipt.Cost:C2}");
+                Console.ForegroundColor = ConsoleColor.Magenta;
+                Console.WriteLine($"[ЕВАКУАТОР] Авто {spot.CurrentVehicle.LicensePlate} перевищило ліміт (120 сек) і відправлено на штрафмайданчик!");
                 Console.ResetColor();
+
+                spot.Vacate();
             }
         }
 
@@ -100,7 +98,7 @@ namespace ParkingVNTU
             foreach(var spot in _spots)
             {
                 string spotInfo = spot.IsVipKudryavtsevSpot
-                    ? "RESERVED [👑 VIP  Кудрявцев Д. С.]"
+                    ? "RESERVED [VIP  Кудрявцев Д. С.]"
                     : $"Тип : {spot.AllowedType, -8}";
                 string status = spot.IsOccupied
                     ? $"[ЗАЙНЯТО {spot.CurrentVehicle.LicensePlate}]" 
