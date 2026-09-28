@@ -4,7 +4,6 @@ using System.Text;
 
 namespace ParkingVNTU
 {
-    internal class VehicleType
-    {
-    }
+    public enum VehicleType
+    { Sedan, SUV, Electric, Truck } 
 }
